@@ -1,0 +1,7 @@
+name: MBombs
+version: 1.0
+main: io.github.jackstrosahl.mbombs.Main
+commands:
+  bomb:
+    description: Blows stuff up.  Used for testing.
+    usage: /bomb

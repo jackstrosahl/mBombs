@@ -1,7 +1,8 @@
-package io.github.jackstrosahl.mbombs;
+package org.strosahl.mbombs;
 
-import io.github.jackstrosahl.mbombs.commands.CommandBomb;
-import io.github.jackstrosahl.mbombs.events.*;
+import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.plugin.java.annotation.plugin.Plugin;
+import org.strosahl.mbombs.commands.CommandBomb;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
@@ -15,19 +16,26 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
 import org.bukkit.inventory.meta.tags.ItemTagType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.strosahl.mbombs.listeners.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.UUID;
 
+@Plugin(name="MBombs",version="1.0")
 public class Main extends JavaPlugin
 {
     FileConfiguration bombsFileConfig;
     File bombsFile;
     String bombsFileName = "bombs.yml";
 
-    HashMap<Location,Integer> bombs;
+    HashMap<Location, BombData> bombBlocks;
+    HashMap<UUID,BombData> bombEntities;
+    HashSet<UUID> allowFlying;
 
+    public static NamespacedKey getNamespace(String s) {return NamespacedKey.minecraft("mbombs"+s);}
     public static final NamespacedKey NAMESPACE = NamespacedKey.minecraft("mbombs");
     public static final int fireBomb = 0;
 
@@ -42,17 +50,25 @@ public class Main extends JavaPlugin
 
         getServer().getPluginManager().registerEvents(new EventBlockPlace(this),this);
         getServer().getPluginManager().registerEvents(new EventBlockDispense(this), this);
-        getServer().getPluginManager().registerEvents(new EventExplosionPrime(this), this);
+        getServer().getPluginManager().registerEvents(new EventEntityExplode(this), this);
         getServer().getPluginManager().registerEvents(new EventBlockBreak(this),this);
 
         getServer().getPluginManager().registerEvents(new EventEntitySpawn(this), this);
+        getServer().getPluginManager().registerEvents(new EventBlockPiston(this), this);
+
+        getServer().getPluginManager().registerEvents(new EventPlayerDeath(this), this);
+        getServer().getPluginManager().registerEvents(new EventPlayerInteract(this), this);
+
+        getServer().getPluginManager().registerEvents(new EventEntityChangeBlock(this),this);
+        getServer().getPluginManager().registerEvents(new EventEntityDamageByEntity(this), this);
+        getServer().getPluginManager().registerEvents(new EventPlayerKick(this), this);
 
         getLogger().info("Enabled");
     }
 
     public void makeRecipes()
     {
-        ShapedRecipe fireRecipe = new ShapedRecipe(NAMESPACE,Bombs.FIRE_BOMB.getItemStack());
+        ShapedRecipe fireRecipe = new ShapedRecipe(getNamespace("0"),Bombs.FIRE_BOMB.getItemStack());
         fireRecipe.shape("TFT",
                 "FTF",
                 "TFT");
@@ -61,6 +77,26 @@ public class Main extends JavaPlugin
         fireRecipe.setIngredient('F',Material.FLINT_AND_STEEL);
 
         Bukkit.addRecipe(fireRecipe);
+
+        ShapedRecipe nukeRecipe = new ShapedRecipe(getNamespace("1"), Bombs.NUKE.getItemStack());
+        nukeRecipe.shape("TTT",
+                "TNT",
+                "TTT");
+
+        nukeRecipe.setIngredient('T',Material.TNT);
+        nukeRecipe.setIngredient('N',Material.NETHER_STAR);
+
+        Bukkit.addRecipe(nukeRecipe);
+
+        ShapedRecipe tunnelerRecipe = new ShapedRecipe(getNamespace("2"), Bombs.TUNNELER.getItemStack());
+        tunnelerRecipe.shape("OTO",
+                "TTT",
+                "OTO");
+
+        tunnelerRecipe.setIngredient('T',Material.TNT);
+        tunnelerRecipe.setIngredient('O',Material.OBSIDIAN);
+
+        Bukkit.addRecipe(tunnelerRecipe);
     }
 
     @Override
@@ -82,14 +118,32 @@ public class Main extends JavaPlugin
 
     public int getMBombsId(ItemStack is)
     {
-        CustomItemTagContainer container = is.getItemMeta().getCustomTagContainer();
-        if(!container.hasCustomTag(Main.NAMESPACE,ItemTagType.INTEGER)) return -1;
-        return container.getCustomTag(NAMESPACE, ItemTagType.INTEGER);
+        try
+        {
+            CustomItemTagContainer container = is.getItemMeta().getCustomTagContainer();
+            if (!container.hasCustomTag(Main.NAMESPACE, ItemTagType.INTEGER))
+                return -1;
+            return container.getCustomTag(NAMESPACE, ItemTagType.INTEGER);
+        }
+        catch(NullPointerException e)
+        {
+            return -1;
+        }
     }
 
-    public HashMap<Location,Integer> getBombs()
+    public HashMap<Location, BombData> getBombBlocks()
     {
-        return bombs;
+        return bombBlocks;
+    }
+
+    public HashMap<UUID, BombData> getBombEntities()
+    {
+        return bombEntities;
+    }
+
+    public HashSet<UUID> getAllowFlying()
+    {
+        return allowFlying;
     }
 
     public boolean setSphere(Location origin, Material mat, Boolean replace, int rX, int rY, int rZ)
@@ -139,30 +193,22 @@ public class Main extends JavaPlugin
 
     public void loadBombs()
     {
-        bombs = new HashMap<>();
-        loadBombsFile(false);
-        for(String s: bombsFileConfig.getKeys(false))
-        {
-            if(bombsFileConfig.isConfigurationSection(s))
-            {
-                ConfigurationSection worldSection = bombsFileConfig.getConfigurationSection(s);
-                for(String coordsString:worldSection.getKeys(false))
-                {
-                    double x,y,z;
-                    String[] coords = coordsString.split(",");
-                    try
-                    {
-                        x=Double.parseDouble(coords[0]);
-                        y=Double.parseDouble(coords[1]);
-                        z=Double.parseDouble(coords[2]);
+        bombBlocks = new HashMap<>();
+        bombEntities = new HashMap<>();
+        allowFlying = new HashSet<>();
 
-                        bombs.put(new Location(getServer().getWorld(worldSection.getName()),x,y,z),worldSection.getInt(coordsString));
-                    }
-                    catch(Exception e)
-                    {
-                        getLogger().warning("Could not load bomb at coordinates "+ coordsString+","+worldSection);
-                    }
-                }
+        ConfigurationSerialization.registerClass(BombData.class);
+
+        loadBombsFile(false);
+        for(String worldName: bombsFileConfig.getKeys(false))
+        {
+            ConfigurationSection worldSection = bombsFileConfig.getConfigurationSection(worldName);
+            for(String i:worldSection.getKeys(false))
+            {
+                ConfigurationSection cur = worldSection.getConfigurationSection(i);
+                Location loc = cur.getSerializable("location",Location.class);
+                BombData data = cur.getSerializable("data", BombData.class);
+                bombBlocks.put(loc,data);
             }
         }
     }
@@ -170,15 +216,18 @@ public class Main extends JavaPlugin
     public void saveBombs()
     {
         loadBombsFile(true);
-        for(Location loc: bombs.keySet())
+        int i =0;
+        for(Location loc: bombBlocks.keySet())
         {
-            String worldName = loc.getWorld().getName();
-            if(!bombsFileConfig.isConfigurationSection(worldName))
+            String sectionName = loc.getWorld().getName()+"."+i;
+            if(!bombsFileConfig.isConfigurationSection(sectionName))
             {
-                bombsFileConfig.createSection(worldName);
+                bombsFileConfig.createSection(sectionName);
             }
-            ConfigurationSection section = bombsFileConfig.getConfigurationSection(worldName);
-            section.set(loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ(),bombs.get(loc));
+            ConfigurationSection section = bombsFileConfig.getConfigurationSection(sectionName);
+            section.set("location",loc);
+            section.set("data", bombBlocks.get(loc));
+            i++;
         }
         saveBombsFile();
     }
@@ -199,6 +248,4 @@ public class Main extends JavaPlugin
     {
         return bombsFileConfig;
     }
-
-
 }

@@ -1,7 +1,7 @@
-package io.github.jackstrosahl.mbombs.events;
+package org.strosahl.mbombs.listeners;
 
-import io.github.jackstrosahl.mbombs.Bombs;
-import io.github.jackstrosahl.mbombs.Main;
+import org.strosahl.mbombs.Bombs;
+import org.strosahl.mbombs.Main;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -24,10 +24,9 @@ public class EventBlockBreak implements Listener
         {
             Location loc = e.getBlock().getLocation();
 
-            if(main.getBombs().containsKey(loc))
+            if(main.getBombBlocks().containsKey(loc))
             {
-                int id = main.getBombs().remove(e.getBlock().getLocation(loc));
-                main.getLogger().info(id+"");
+                int id = main.getBombBlocks().remove(e.getBlock().getLocation(loc)).getId();
                 if(!e.getPlayer().getGameMode().equals(GameMode.CREATIVE))
                 {
                     e.setDropItems(false);

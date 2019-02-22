@@ -1,6 +1,8 @@
-package io.github.jackstrosahl.mbombs.events;
+package org.strosahl.mbombs.listeners;
 
-import io.github.jackstrosahl.mbombs.Main;
+import org.bukkit.util.Vector;
+import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.Main;
 import org.bukkit.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -27,7 +29,15 @@ public class EventBlockPlace implements Listener
             if(id!=-1)
             {
                 Location loc = e.getBlockPlaced().getLocation();
-                main.getBombs().put(loc,id);
+
+                Location against = e.getBlockAgainst().getLocation();
+                Vector diff = loc.clone().subtract(against).toVector();
+                if(diff.equals(new Vector(0,0,0))&&!e.getBlockReplacedState().getBlock().getType().equals(Material.AIR))
+                {
+                    diff.setY(1);
+                }
+
+                main.getBombBlocks().put(loc,new BombData(id,diff));
             }
         }
     }

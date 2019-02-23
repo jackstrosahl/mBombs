@@ -2,7 +2,7 @@ package org.strosahl.mbombs.listeners;
 
 import org.bukkit.util.Vector;
 import org.strosahl.mbombs.Bombs;
-import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Main;
 import org.bukkit.Location;
 import org.bukkit.entity.TNTPrimed;
@@ -26,30 +26,18 @@ public class EventEntitySpawn implements Listener
         {
             TNTPrimed tnt = (TNTPrimed)e.getEntity();
             Location loc = e.getLocation().getBlock().getLocation();
+            BombData data = null;
             if(main.getBombBlocks().containsKey(loc))
             {
-                BombData data = main.getBombBlocks().remove(loc);
-                main.getBombEntities().put(e.getEntity().getUniqueId(),data);
-                Bombs bomb = Bombs.getBomb(data.getId());
-                tnt.setIsIncendiary(bomb.isIncendiary());
-                tnt.setYield(bomb.getYield());
-                tnt.setFuseTicks(bomb.getFuse());
-
-                switch(bomb)
-                {
-                    case FLOATER:
-                        tnt.setGravity(false);
-                        tnt.setVelocity(data.getDirection());
-                        break;
-                    case TUNNELER:
-                    case ANTIGRAVITY:
-                        tnt.setGravity(false);
-                        tnt.setVelocity(new Vector(0,0,0));
-                        break;
-                    case CLUSTER_BOMB:
-                        tnt.setFuseTicks(0);
-                        break;
-                }
+                data = main.getBombBlocks().get(loc);
+            }
+            else if(main.getBombEntities().containsKey(loc))
+            {
+                data = main.getBombEntities().get(loc);
+            }
+            if(data!=null)
+            {
+                main.applyData(tnt,data);
             }
         }
     }

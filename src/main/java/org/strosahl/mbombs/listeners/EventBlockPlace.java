@@ -1,7 +1,7 @@
 package org.strosahl.mbombs.listeners;
 
 import org.bukkit.util.Vector;
-import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Main;
 import org.bukkit.*;
 import org.bukkit.event.EventHandler;

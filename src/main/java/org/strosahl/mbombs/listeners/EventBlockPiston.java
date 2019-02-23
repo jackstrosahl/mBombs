@@ -1,6 +1,6 @@
 package org.strosahl.mbombs.listeners;
 
-import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Main;
 import org.bukkit.Location;
 import org.bukkit.block.Block;

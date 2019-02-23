@@ -4,7 +4,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Bombs;
 import org.strosahl.mbombs.Main;
 

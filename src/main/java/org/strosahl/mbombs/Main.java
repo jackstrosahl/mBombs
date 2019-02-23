@@ -1,21 +1,25 @@
 package org.strosahl.mbombs;
 
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.entity.*;
+import org.bukkit.plugin.java.annotation.plugin.ApiVersion;
 import org.bukkit.plugin.java.annotation.plugin.Plugin;
+import org.bukkit.plugin.java.annotation.plugin.author.Author;
+import org.bukkit.projectiles.ProjectileSource;
+import org.bukkit.util.Vector;
 import org.strosahl.mbombs.commands.CommandBomb;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
 import org.bukkit.inventory.meta.tags.ItemTagType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.strosahl.mbombs.data.BombData;
+import org.strosahl.mbombs.data.MissileData;
 import org.strosahl.mbombs.listeners.*;
 
 import java.io.File;
@@ -25,6 +29,8 @@ import java.util.HashSet;
 import java.util.UUID;
 
 @Plugin(name="MBombs",version="1.0")
+@ApiVersion(ApiVersion.Target.v1_13)
+@Author("strojac")
 public class Main extends JavaPlugin
 {
     FileConfiguration bombsFileConfig;
@@ -33,6 +39,8 @@ public class Main extends JavaPlugin
 
     HashMap<Location, BombData> bombBlocks;
     HashMap<UUID,BombData> bombEntities;
+    HashMap<UUID, MissileData> missileEntities;
+
     HashSet<UUID> allowFlying;
 
     public static NamespacedKey getNamespace(String s) {return NamespacedKey.minecraft("mbombs"+s);}
@@ -62,6 +70,8 @@ public class Main extends JavaPlugin
         getServer().getPluginManager().registerEvents(new EventEntityChangeBlock(this),this);
         getServer().getPluginManager().registerEvents(new EventEntityDamageByEntity(this), this);
         getServer().getPluginManager().registerEvents(new EventPlayerKick(this), this);
+
+        getServer().getPluginManager().registerEvents(new EventProjectileHit(this),this);
 
         getLogger().info("Enabled");
     }
@@ -141,6 +151,11 @@ public class Main extends JavaPlugin
         return bombEntities;
     }
 
+    public HashMap<UUID, MissileData> getMissileEntities()
+    {
+        return missileEntities;
+    }
+
     public HashSet<UUID> getAllowFlying()
     {
         return allowFlying;
@@ -177,6 +192,78 @@ public class Main extends JavaPlugin
         tnt.setFuseTicks(fuse);
     }
 
+    public TNTPrimed spawnBomb(Location loc, BombData data)
+    {
+        TNTPrimed out = (TNTPrimed)loc.getWorld().spawnEntity(loc, EntityType.PRIMED_TNT);
+        bombEntities.put(out.getUniqueId(),data);
+        applyData(out,data);
+        return out;
+    }
+
+    public void applyData(TNTPrimed tnt,BombData data)
+    {
+        getBombEntities().put(tnt.getUniqueId(),data);
+        Bombs bomb = Bombs.getBomb(data.getId());
+        tnt.setIsIncendiary(bomb.isIncendiary());
+        tnt.setYield(bomb.getYield());
+        tnt.setFuseTicks(bomb.getFuse());
+
+        switch(bomb)
+        {
+            case FLOATER:
+                tnt.setGravity(false);
+                tnt.setVelocity(data.getDirection());
+                break;
+            case TUNNELER:
+            case ANTIGRAVITY:
+                tnt.setGravity(false);
+                tnt.setVelocity(new Vector(0,0,0));
+                break;
+            case CLUSTER_BOMB:
+                tnt.setFuseTicks(0);
+                break;
+        }
+    }
+
+    public Projectile spawnMissile(Location loc, MissileData data, EntityType type, ProjectileSource source)
+    {
+        Entity spawned = loc.getWorld().spawnEntity(loc, type);
+        getMissileEntities().put(spawned.getUniqueId(),data);
+        if(!(spawned instanceof Projectile)) return null;
+
+        Projectile out = (Projectile) spawned;
+        out.setShooter(source);
+        out.setGravity(false);
+
+        Location target = data.getTarget();
+        Vector midpoint = loc.toVector().midpoint(target.toVector());
+        midpoint.setY(loc.getY()+100);
+        double radius = loc.toVector().distance(midpoint);
+        Vector path = target.toVector().subtract(loc.toVector()).normalize();
+        path.setY(0);
+
+        double magnitude = path.distance(new Vector(0,0,0))*2;
+
+        path.setY(magnitude);
+
+        out.setVelocity(path);
+
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
+        {
+            Vector cur = out.getLocation().toVector();
+            double dist = cur.distance(midpoint);
+            double percent = 1-(dist/radius);
+            if(out.getLocation().toVector().distance(target.toVector())<radius) percent = -percent;
+            path.setY(magnitude*percent);
+            out.setVelocity(path);
+        },20L,20L);
+        return out;
+    }
+
+    public Projectile spawnMissile(Location loc, MissileData data, ProjectileSource source)
+    {
+        return spawnMissile(loc,data,EntityType.TRIDENT,source);
+    }
 
     //Saving/Loading bomb locations/ids
     public void loadBombsFile(boolean replace)
@@ -195,21 +282,20 @@ public class Main extends JavaPlugin
     {
         bombBlocks = new HashMap<>();
         bombEntities = new HashMap<>();
+        missileEntities = new HashMap<>();
+
         allowFlying = new HashSet<>();
 
         ConfigurationSerialization.registerClass(BombData.class);
 
         loadBombsFile(false);
-        for(String worldName: bombsFileConfig.getKeys(false))
+
+        for(String i:bombsFileConfig.getKeys(false))
         {
-            ConfigurationSection worldSection = bombsFileConfig.getConfigurationSection(worldName);
-            for(String i:worldSection.getKeys(false))
-            {
-                ConfigurationSection cur = worldSection.getConfigurationSection(i);
-                Location loc = cur.getSerializable("location",Location.class);
-                BombData data = cur.getSerializable("data", BombData.class);
-                bombBlocks.put(loc,data);
-            }
+            ConfigurationSection cur = bombsFileConfig.getConfigurationSection(i);
+            Location loc = cur.getSerializable("location",Location.class);
+            BombData data = cur.getSerializable("data", BombData.class);
+            bombBlocks.put(loc,data);
         }
     }
 
@@ -219,11 +305,7 @@ public class Main extends JavaPlugin
         int i =0;
         for(Location loc: bombBlocks.keySet())
         {
-            String sectionName = loc.getWorld().getName()+"."+i;
-            if(!bombsFileConfig.isConfigurationSection(sectionName))
-            {
-                bombsFileConfig.createSection(sectionName);
-            }
+            String sectionName = i+"";
             ConfigurationSection section = bombsFileConfig.getConfigurationSection(sectionName);
             section.set("location",loc);
             section.set("data", bombBlocks.get(loc));

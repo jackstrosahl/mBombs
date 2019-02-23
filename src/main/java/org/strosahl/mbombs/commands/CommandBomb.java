@@ -34,6 +34,7 @@ public class CommandBomb implements CommandExecutor
                 for(Bombs bomb: Bombs.values())
                 {
                     player.getInventory().addItem(bomb.getItemStack());
+                    player.getInventory().addItem(bomb.getMissile());
                 }
 
             }

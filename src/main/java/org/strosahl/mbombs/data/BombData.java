@@ -1,4 +1,4 @@
-package org.strosahl.mbombs;
+package org.strosahl.mbombs.data;
 
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.util.Vector;

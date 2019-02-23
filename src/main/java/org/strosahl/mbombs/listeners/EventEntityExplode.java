@@ -5,10 +5,9 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.entity.*;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.util.Vector;
-import org.strosahl.mbombs.BombData;
+import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Bombs;
 import org.strosahl.mbombs.Main;
 import org.bukkit.Location;
@@ -154,8 +153,8 @@ public class EventEntityExplode implements Listener
     {
         TNTPrimed entity = (TNTPrimed)loc.getWorld().spawnEntity(loc, EntityType.PRIMED_TNT);
         entity.setYield(yield);
-        entity.setFuseTicks(fuse);
         entity.setVelocity(velocity);
+        entity.setFuseTicks(fuse);
         entity.addScoreboardTag("strosahl.mbombs.deathmessage."+id);
     }
 

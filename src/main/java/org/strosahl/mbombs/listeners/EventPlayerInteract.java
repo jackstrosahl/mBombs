@@ -3,6 +3,7 @@ package org.strosahl.mbombs.listeners;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -69,9 +70,21 @@ public class EventPlayerInteract implements Listener
                 }
                 else if(action.equals(Action.RIGHT_CLICK_BLOCK)&&item.getType().equals(Material.FIREWORK_ROCKET))
                 {
-                    Location loc =e.getPlayer().getTargetBlock(null,10).getRelative(BlockFace.UP).getLocation();
-                    main.spawnMissile(loc,new MissileData(loc.clone().add(100,0,100),bomb.getId()),player);
+                    Location loc =player.getTargetBlock(null,10).getRelative(BlockFace.UP).getLocation();
+
+                    main.launch(player,id,loc);
                     e.setCancelled(true);
+                }
+            }
+            else if(item.equals(Main.targeter)&&(action.equals(Action.RIGHT_CLICK_BLOCK)||action.equals(Action.RIGHT_CLICK_AIR)))
+            {
+                Block targetBlock = player.getTargetBlock(null,16*main.getServer().getViewDistance());
+                if(targetBlock==null) player.sendMessage(Main.prefix+"Could not find a suitable target.");
+                else
+                {
+                    Location target = targetBlock.getLocation();
+                    main.getTargets().put(player.getUniqueId(),target);
+                    player.sendMessage(Main.prefix+"Successfully targeted Z: "+target.getX()+" Z: "+target.getZ()+".");
                 }
             }
         }

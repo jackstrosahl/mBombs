@@ -2,6 +2,8 @@ package org.strosahl.mbombs;
 
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.*;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.annotation.plugin.ApiVersion;
 import org.bukkit.plugin.java.annotation.plugin.Plugin;
 import org.bukkit.plugin.java.annotation.plugin.author.Author;
@@ -41,11 +43,22 @@ public class Main extends JavaPlugin
     HashMap<UUID,BombData> bombEntities;
     HashMap<UUID, MissileData> missileEntities;
 
+    HashMap<UUID, Location> targets;
     HashSet<UUID> allowFlying;
 
     public static NamespacedKey getNamespace(String s) {return NamespacedKey.minecraft("mbombs"+s);}
     public static final NamespacedKey NAMESPACE = NamespacedKey.minecraft("mbombs");
-    public static final int fireBomb = 0;
+
+    public static ItemStack targeter;
+    public static String prefix=ChatColor.AQUA+"[MBombs]: "+ChatColor.DARK_GREEN;
+
+    static
+    {
+        targeter = new ItemStack(Material.CLOCK);
+        ItemMeta targeterMeta = targeter.getItemMeta();
+        targeterMeta.setDisplayName(ChatColor.RED+"Targeter");
+        targeter.setItemMeta(targeterMeta);
+    }
 
     @Override
     public void onEnable()
@@ -107,6 +120,13 @@ public class Main extends JavaPlugin
         tunnelerRecipe.setIngredient('O',Material.OBSIDIAN);
 
         Bukkit.addRecipe(tunnelerRecipe);
+
+        ShapelessRecipe targeterRecipe = new ShapelessRecipe(getNamespace("3"),targeter);
+
+        targeterRecipe.addIngredient(Material.COMPASS);
+        targeterRecipe.addIngredient(8,Material.DIAMOND);
+
+        Bukkit.addRecipe(targeterRecipe);
     }
 
     @Override
@@ -161,6 +181,11 @@ public class Main extends JavaPlugin
         return allowFlying;
     }
 
+    public HashMap<UUID, Location> getTargets()
+    {
+        return targets;
+    }
+
     public boolean setSphere(Location origin, Material mat, Boolean replace, int rX, int rY, int rZ)
     {
         int oX = (int)origin.getX();
@@ -206,6 +231,7 @@ public class Main extends JavaPlugin
         Bombs bomb = Bombs.getBomb(data.getId());
         tnt.setIsIncendiary(bomb.isIncendiary());
         tnt.setYield(bomb.getYield());
+        getLogger().info(bomb.getYield()+"");
         tnt.setFuseTicks(bomb.getFuse());
 
         switch(bomb)
@@ -225,6 +251,27 @@ public class Main extends JavaPlugin
         }
     }
 
+    public boolean launch(Player player, int id, Location origin)
+    {
+        UUID uuid = player.getUniqueId();
+        if(targets.containsKey(uuid))
+        {
+            Location target = targets.get(uuid);
+            if(origin.getX()==target.getX()&&origin.getZ()==target.getZ())
+            {
+                player.sendMessage(prefix+"Target is too close!");
+                return false;
+            }
+            spawnMissile(origin, new MissileData(target,id),player);
+            return true;
+        }
+        else
+        {
+            player.sendMessage(prefix+"You do not have a target!  Hint: craft a targeter first.");
+            return false;
+        }
+    }
+
     public Projectile spawnMissile(Location loc, MissileData data, EntityType type, ProjectileSource source)
     {
         Entity spawned = loc.getWorld().spawnEntity(loc, type);
@@ -235,11 +282,12 @@ public class Main extends JavaPlugin
         out.setShooter(source);
         out.setGravity(false);
 
-        Location target = data.getTarget();
-        Vector midpoint = loc.toVector().midpoint(target.toVector());
-        midpoint.setY(loc.getY()+100);
-        double radius = loc.toVector().distance(midpoint);
-        Vector path = target.toVector().subtract(loc.toVector()).normalize();
+        Vector target = data.getTarget().toVector();
+        target.setY(0);
+        Vector origin = loc.toVector();
+        origin.setY(0);
+        double radius = origin.distance(target)/2;
+        Vector path = target.clone().subtract(origin).normalize().multiply(.3);
         path.setY(0);
 
         double magnitude = path.distance(new Vector(0,0,0))*2;
@@ -248,15 +296,33 @@ public class Main extends JavaPlugin
 
         out.setVelocity(path);
 
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
+        getLogger().info("Target: "+target+" Origin: "+origin);
+        getLogger().info(path+"");
+        data.setTaskId(Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
         {
             Vector cur = out.getLocation().toVector();
-            double dist = cur.distance(midpoint);
-            double percent = 1-(dist/radius);
-            if(out.getLocation().toVector().distance(target.toVector())<radius) percent = -percent;
+            cur.setY(0);
+            double dist = cur.distance(origin);
+            double percent = (radius-dist)/radius;
             path.setY(magnitude*percent);
+            if(percent<=-1)
+            {
+                path.setX(0);
+                path.setZ(0);
+            }
+            Chunk chunk = out.getLocation().getChunk();
+
+
             out.setVelocity(path);
-        },20L,20L);
+
+            getLogger().info("dist: "+dist+" radius: "+radius+" = "+percent);
+        },3L,3L));
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
+        {
+            Location cur = out.getLocation();
+            Chunk next = cur.clone().add(path.clone().multiply(20)).getChunk();
+            if(!next.isLoaded()) next.load();
+        },0L,20L);
         return out;
     }
 
@@ -283,6 +349,7 @@ public class Main extends JavaPlugin
         bombBlocks = new HashMap<>();
         bombEntities = new HashMap<>();
         missileEntities = new HashMap<>();
+        targets = new HashMap<>();
 
         allowFlying = new HashSet<>();
 

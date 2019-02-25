@@ -36,7 +36,7 @@ public class CommandBomb implements CommandExecutor
                     player.getInventory().addItem(bomb.getItemStack());
                     player.getInventory().addItem(bomb.getMissile());
                 }
-
+                player.getInventory().addItem(Main.targeter);
             }
             else if(args[0].equals("spawn"))
             {

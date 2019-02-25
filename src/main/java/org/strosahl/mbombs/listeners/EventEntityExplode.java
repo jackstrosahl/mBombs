@@ -38,7 +38,8 @@ public class EventEntityExplode implements Listener
             int id = data.getId();
             Bombs bomb = Bombs.getBomb(id);
             Location origin = e.getEntity().getLocation().getBlock().getLocation();
-            double yield = ((TNTPrimed)e.getEntity()).getYield();
+            double yield = bomb.getYield();
+            //main.getLogger().info(yield+"");
             switch(bomb)
             {
                 case FIRE_BOMB:
@@ -51,6 +52,7 @@ public class EventEntityExplode implements Listener
                     break;
                 case NUKE:
                     e.setCancelled(true);
+
 
                     double d = 10;
                     yield = yield-(d/2);

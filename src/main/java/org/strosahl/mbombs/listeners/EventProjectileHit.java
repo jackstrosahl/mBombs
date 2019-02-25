@@ -1,6 +1,8 @@
 package org.strosahl.mbombs.listeners;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,14 +26,17 @@ public class EventProjectileHit implements Listener
     @EventHandler
     public void onEvent(ProjectileHitEvent e)
     {
-        Entity entity = e.getEntity();
+        Projectile entity = e.getEntity();
         UUID uuid = entity.getUniqueId();
         if(main.getMissileEntities().containsKey(uuid))
         {
-            MissileData data = main.getMissileEntities().get(uuid);
+            MissileData data = main.getMissileEntities().remove(uuid);
             TNTPrimed tnt =main.spawnBomb(entity.getLocation(),new BombData(data.getId(),new Vector(0,1,0)));
             tnt.setFuseTicks(0);
             entity.remove();
+
+            if(data.getTaskId()!=1)
+                Bukkit.getScheduler().cancelTask(data.getTaskId());
         }
     }
 }

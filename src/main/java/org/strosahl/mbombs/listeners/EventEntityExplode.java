@@ -34,7 +34,7 @@ public class EventEntityExplode implements Listener
     {
         if(!e.isCancelled()&&main.getBombEntities().containsKey(e.getEntity().getUniqueId()))
         {
-            BombData data = main.getBombEntities().get(e.getEntity().getUniqueId());
+            BombData data = main.getBombEntities().remove(e.getEntity().getUniqueId());
             int id = data.getId();
             Bombs bomb = Bombs.getBomb(id);
             Location origin = e.getEntity().getLocation().getBlock().getLocation();

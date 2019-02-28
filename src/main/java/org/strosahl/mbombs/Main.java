@@ -2,7 +2,7 @@ package org.strosahl.mbombs;
 
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.*;
-import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.annotation.plugin.ApiVersion;
 import org.bukkit.plugin.java.annotation.plugin.Plugin;
@@ -15,8 +15,6 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
 import org.bukkit.inventory.meta.tags.ItemTagType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -57,6 +55,7 @@ public class Main extends JavaPlugin
         targeter = new ItemStack(Material.CLOCK);
         ItemMeta targeterMeta = targeter.getItemMeta();
         targeterMeta.setDisplayName(ChatColor.RED+"Targeter");
+        targeterMeta.getCustomTagContainer().setCustomTag(NAMESPACE,ItemTagType.INTEGER,-2);
         targeter.setItemMeta(targeterMeta);
     }
 
@@ -92,9 +91,9 @@ public class Main extends JavaPlugin
     public void makeRecipes()
     {
         ShapedRecipe fireRecipe = new ShapedRecipe(getNamespace("0"),Bombs.FIRE_BOMB.getItemStack());
-        fireRecipe.shape("TFT",
+        fireRecipe.shape(" F ",
                 "FTF",
-                "TFT");
+                " F ");
 
         fireRecipe.setIngredient('T',Material.TNT);
         fireRecipe.setIngredient('F',Material.FLINT_AND_STEEL);
@@ -127,6 +126,53 @@ public class Main extends JavaPlugin
         targeterRecipe.addIngredient(8,Material.DIAMOND);
 
         Bukkit.addRecipe(targeterRecipe);
+
+        ShapelessRecipe floaterRecipe = new ShapelessRecipe(getNamespace("4"),Bombs.FLOATER.getItemStack());
+        floaterRecipe.addIngredient(8, Material.FEATHER);
+        floaterRecipe.addIngredient(Material.TNT);
+
+        Bukkit.addRecipe(floaterRecipe);
+
+        ShapelessRecipe antiGravityRecipe = new ShapelessRecipe(getNamespace("5"),Bombs.ANTIGRAVITY.getItemStack());
+        antiGravityRecipe.addIngredient(Material.TNT);
+        antiGravityRecipe.addIngredient(8, Material.SOUL_SAND);
+
+        Bukkit.addRecipe(antiGravityRecipe);
+
+        ShapelessRecipe clusterRecipe = new ShapelessRecipe(getNamespace("6"),Bombs.CLUSTER_BOMB.getItemStack());
+        clusterRecipe.addIngredient(9, Material.TNT);
+
+        Bukkit.addRecipe(clusterRecipe);
+
+        int i = 7;
+        for(Bombs bomb: Bombs.values())
+        {
+            switch(bomb)
+            {
+                case RELOCATOR:
+                {
+                    ShapelessRecipe recipe = new ShapelessRecipe(getNamespace(i + ""), bomb.getMissile());
+                    recipe.addIngredient(Material.FIREWORK_ROCKET);
+                    recipe.addIngredient(new RecipeChoice.MaterialChoice(Material.BIRCH_BOAT, Material.ACACIA_BOAT, Material.DARK_OAK_BOAT, Material.JUNGLE_BOAT, Material.OAK_BOAT, Material.SPRUCE_BOAT));
+                    Bukkit.addRecipe(recipe);
+                }
+                break;
+                default:
+                {
+                    ShapedRecipe recipe = new ShapedRecipe(getNamespace(i + ""), bomb.getMissile());
+                    recipe.shape("FFF",
+                            "FBF",
+                            "FFF");
+
+                    recipe.setIngredient('F',Material.FIREWORK_ROCKET);
+                    recipe.setIngredient('B', new RecipeChoice.ExactChoice(bomb.getItemStack()));
+
+                    Bukkit.addRecipe(recipe);
+                }
+                break;
+            }
+            i++;
+        }
     }
 
     @Override
@@ -262,7 +308,13 @@ public class Main extends JavaPlugin
                 player.sendMessage(prefix+"Target is too close!");
                 return false;
             }
-            spawnMissile(origin, new MissileData(target,id),player);
+            Projectile missile = spawnMissile(origin, new MissileData(target,id),player);
+            switch(Bombs.getBomb(id))
+            {
+                case RELOCATOR:
+                    missile.addPassenger(player);
+                    break;
+            }
             return true;
         }
         else
@@ -292,9 +344,18 @@ public class Main extends JavaPlugin
 
         double magnitude = path.distance(new Vector(0,0,0))*2;
 
-        path.setY(magnitude);
+        out.setVelocity(new Vector(0,magnitude,0));
 
-        out.setVelocity(path);
+        int targetY = data.getTarget().getBlockY();
+        int originY = loc.getBlockY();
+        int diffY = targetY - originY;
+
+        long delay = 0;
+        if(diffY>0)
+        {
+            delay = (long)(diffY / magnitude);
+            getLogger().info(delay+"");
+        }
 
         getLogger().info("Target: "+target+" Origin: "+origin);
         getLogger().info(path+"");
@@ -310,19 +371,25 @@ public class Main extends JavaPlugin
                 path.setX(0);
                 path.setZ(0);
             }
-            Chunk chunk = out.getLocation().getChunk();
-
-
+            Chunk middle = out.getLocation().getChunk();
+            int r =1;
+            for(int x=-r;x<=r;x++)
+            {
+                for(int z=-r;z<=r;z++)
+                {
+                    Chunk chunk = middle.getWorld().getChunkAt(middle.getX()+x,middle.getZ()+z);
+                    if(!data.getForced().contains(chunk))
+                    {
+                        chunk.load();
+                        chunk.setForceLoaded(true);
+                        data.getForced().add(chunk);
+                    }
+                }
+            }
             out.setVelocity(path);
 
             getLogger().info("dist: "+dist+" radius: "+radius+" = "+percent);
-        },3L,3L));
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
-        {
-            Location cur = out.getLocation();
-            Chunk next = cur.clone().add(path.clone().multiply(20)).getChunk();
-            if(!next.isLoaded()) next.load();
-        },0L,20L);
+        },delay,3L));
         return out;
     }
 
@@ -357,12 +424,16 @@ public class Main extends JavaPlugin
 
         loadBombsFile(false);
 
-        for(String i:bombsFileConfig.getKeys(false))
+        if(bombsFileConfig.isConfigurationSection("bombs"))
         {
-            ConfigurationSection cur = bombsFileConfig.getConfigurationSection(i);
-            Location loc = cur.getSerializable("location",Location.class);
-            BombData data = cur.getSerializable("data", BombData.class);
-            bombBlocks.put(loc,data);
+            ConfigurationSection section = bombsFileConfig.getConfigurationSection("bombs");
+            for (String i : section.getKeys(false))
+            {
+                ConfigurationSection cur = section.getConfigurationSection(i);
+                Location loc = cur.getSerializable("location", Location.class);
+                BombData data = cur.getSerializable("data", BombData.class);
+                bombBlocks.put(loc, data);
+            }
         }
     }
 
@@ -370,10 +441,12 @@ public class Main extends JavaPlugin
     {
         loadBombsFile(true);
         int i =0;
+
+        ConfigurationSection bombsSection = bombsFileConfig.createSection("bombs");
         for(Location loc: bombBlocks.keySet())
         {
             String sectionName = i+"";
-            ConfigurationSection section = bombsFileConfig.getConfigurationSection(sectionName);
+            ConfigurationSection section = bombsSection.createSection(sectionName);
             section.set("location",loc);
             section.set("data", bombBlocks.get(loc));
             i++;

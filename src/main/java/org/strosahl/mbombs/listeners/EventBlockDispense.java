@@ -1,5 +1,6 @@
 package org.strosahl.mbombs.listeners;
 
+import org.bukkit.Material;
 import org.bukkit.util.Vector;
 import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Main;
@@ -28,10 +29,18 @@ public class EventBlockDispense implements Listener
             int id = main.getMBombsId(item);
             if(id!=-1)
             {
-                Location loc = e.getBlock().getRelative(((Dispenser) e.getBlock().getState().getData()).getFacing()).getLocation();
-                Location against = e.getBlock().getLocation();
-                Vector diff = loc.clone().subtract(against).toVector();
-                main.getBombBlocks().put(loc,new BombData(id,diff));
+                switch(item.getType())
+                {
+                    case TNT:
+                        Location loc = e.getBlock().getRelative(((Dispenser) e.getBlock().getState().getData()).getFacing()).getLocation();
+                        Location against = e.getBlock().getLocation();
+                        Vector diff = loc.clone().subtract(against).toVector();
+                        main.getBombBlocks().put(loc, new BombData(id, diff));
+                        break;
+                    case FIREWORK_ROCKET:
+                        e.setCancelled(true);
+                        break;
+                }
             }
         }
     }

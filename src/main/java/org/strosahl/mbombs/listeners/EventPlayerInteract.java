@@ -5,7 +5,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
@@ -17,7 +16,6 @@ import org.bukkit.inventory.ItemStack;
 import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Bombs;
 import org.strosahl.mbombs.Main;
-import org.strosahl.mbombs.data.MissileData;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -44,7 +42,7 @@ public class EventPlayerInteract implements Listener
             UUID uuid = player.getUniqueId();
             ItemStack item = e.getHand().equals(EquipmentSlot.HAND) ? player.getInventory().getItemInMainHand() : player.getInventory().getItemInOffHand();
             int id = main.getMBombsId(item);
-            if (id != -1)
+            if (id >= 0)
             {
                 Bombs bomb = Bombs.getBomb(id);
                 if(action.equals(Action.RIGHT_CLICK_AIR)&&item.getType().equals(Material.TNT))
@@ -68,23 +66,28 @@ public class EventPlayerInteract implements Listener
                         lastDoneMap.put(uuid, System.currentTimeMillis());
                     }
                 }
-                else if(action.equals(Action.RIGHT_CLICK_BLOCK)&&item.getType().equals(Material.FIREWORK_ROCKET))
+                else if(item.getType().equals(Material.FIREWORK_ROCKET))
                 {
-                    Location loc =player.getTargetBlock(null,10).getRelative(BlockFace.UP).getLocation();
+                    if(action.equals((Action.RIGHT_CLICK_BLOCK)))
+                    {
+                        Location loc = player.getTargetBlock(null, 10).getRelative(BlockFace.UP).getLocation();
 
-                    main.launch(player,id,loc);
+                        main.launch(player, id, loc);
+                        if (!player.getGameMode().equals(GameMode.CREATIVE))
+                            item.setAmount(item.getAmount() - 1);
+                    }
                     e.setCancelled(true);
                 }
             }
-            else if(item.equals(Main.targeter)&&(action.equals(Action.RIGHT_CLICK_BLOCK)||action.equals(Action.RIGHT_CLICK_AIR)))
+            else if(id==-2)
             {
                 Block targetBlock = player.getTargetBlock(null,16*main.getServer().getViewDistance());
-                if(targetBlock==null) player.sendMessage(Main.prefix+"Could not find a suitable target.");
+                if(targetBlock.getType().equals(Material.AIR)) player.sendMessage(Main.prefix+"Could not find a suitable target.");
                 else
                 {
                     Location target = targetBlock.getLocation();
                     main.getTargets().put(player.getUniqueId(),target);
-                    player.sendMessage(Main.prefix+"Successfully targeted Z: "+target.getX()+" Z: "+target.getZ()+".");
+                    player.sendMessage(Main.prefix+"Successfully targeted X: "+target.getX()+" Y: "+target.getY()+" Z: "+target.getZ()+".");
                 }
             }
         }

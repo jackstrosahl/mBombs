@@ -8,12 +8,13 @@ import org.bukkit.inventory.meta.tags.ItemTagType;
 
 public enum Bombs
 {
-    FIRE_BOMB(0,ChatColor.GOLD+"Fire",20,4,true),
-    NUKE(1,ChatColor.DARK_GREEN+"Nuke",200,15,false),
-    TUNNELER(2,ChatColor.GRAY+"Tunneler",80,100,false),
-    FLOATER(3, ChatColor.BLUE+"Floater",80,10,false),
+    FIRE_BOMB(0,ChatColor.GOLD+"Incendiary",20,4,true),
+    NUKE(1,ChatColor.DARK_GREEN+"Nuclear",200,15,false),
+    TUNNELER(2,ChatColor.GRAY+"Tunnel",80,40,false),
+    FLOATER(3, ChatColor.BLUE+"Floater",80,4,false),
     ANTIGRAVITY(4,ChatColor.YELLOW+"Anti-Gravity",80,15,false),
-    CLUSTER_BOMB(5,ChatColor.BLACK+"Cluster",80,15,false);
+    CLUSTER_BOMB(5,ChatColor.DARK_GRAY+"Cluster",80,15,false),
+    RELOCATOR(6, ChatColor.AQUA+"Relocator",0,0,false);
 
     private final int id;
     private final ItemStack is;
@@ -27,11 +28,19 @@ public enum Bombs
         this.fuse = fuse;
         this.yield=yield;
         this.incendiary=incendiary;
-        is = new ItemStack(Material.TNT);
-        ItemMeta im = is.getItemMeta();
-        im.getCustomTagContainer().setCustomTag(Main.NAMESPACE, ItemTagType.INTEGER,id);
-        im.setDisplayName(name +" Bomb");
-        is.setItemMeta(im);
+        switch(id)
+        {
+            case 6:
+                is = new ItemStack(Material.AIR);
+                break;
+            default:
+                is = new ItemStack(Material.TNT);
+                ItemMeta im = is.getItemMeta();
+                im.getCustomTagContainer().setCustomTag(Main.NAMESPACE, ItemTagType.INTEGER,id);
+                im.setDisplayName(name +" Bomb");
+                is.setItemMeta(im);
+                break;
+        }
 
         missile = new ItemStack(Material.FIREWORK_ROCKET);
         ItemMeta missileMeta = missile.getItemMeta();

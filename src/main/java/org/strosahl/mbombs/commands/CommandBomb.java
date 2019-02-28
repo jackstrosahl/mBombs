@@ -1,6 +1,8 @@
 package org.strosahl.mbombs.commands;
 
 import org.bukkit.entity.EntityType;
+import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.java.annotation.permission.Permission;
 import org.strosahl.mbombs.Bombs;
 import org.strosahl.mbombs.Main;
 import org.bukkit.command.Command;
@@ -8,7 +10,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@org.bukkit.plugin.java.annotation.command.Command(name="bomb",desc="Blows stuff up.  Used for testing.", usage="/bomb [yield]")
+@org.bukkit.plugin.java.annotation.command.Command(name="bomb",desc="Blows stuff up.  Used for testing.", usage="/bomb [yield]",permission = "mbombs.bomb")
+@Permission(name ="mbombs.bomb")
 public class CommandBomb implements CommandExecutor
 {
 

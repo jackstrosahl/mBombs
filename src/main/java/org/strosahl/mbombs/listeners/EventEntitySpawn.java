@@ -10,6 +10,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
+import java.util.UUID;
+
 public class EventEntitySpawn implements Listener
 {
     Main main;
@@ -26,14 +28,15 @@ public class EventEntitySpawn implements Listener
         {
             TNTPrimed tnt = (TNTPrimed)e.getEntity();
             Location loc = e.getLocation().getBlock().getLocation();
+            UUID uuid = e.getEntity().getUniqueId();
             BombData data = null;
             if(main.getBombBlocks().containsKey(loc))
             {
-                data = main.getBombBlocks().get(loc);
+                data = main.getBombBlocks().remove(loc);
             }
-            else if(main.getBombEntities().containsKey(loc))
+            else if(main.getBombEntities().containsKey(uuid))
             {
-                data = main.getBombEntities().get(loc);
+                data = main.getBombEntities().get(uuid);
             }
             if(data!=null)
             {

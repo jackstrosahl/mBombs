@@ -36,7 +36,6 @@ public class EventProjectileHit implements Listener
 
             for(Chunk c: data.getForced())
             {
-                main.getLogger().info(c.toString());
                 c.setForceLoaded(false);
             }
 

@@ -18,6 +18,6 @@ public class EventEntityChangeBlock implements Listener
     @EventHandler
     public void onEvent(EntityChangeBlockEvent e)
     {
-        //main.getLogger().info(e.isCancelled()+"");
+
     }
 }

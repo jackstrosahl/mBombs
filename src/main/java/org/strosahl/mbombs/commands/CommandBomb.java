@@ -1,5 +1,6 @@
 package org.strosahl.mbombs.commands;
 
+import org.bukkit.Sound;
 import org.bukkit.entity.EntityType;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.annotation.permission.Permission;
@@ -15,10 +16,10 @@ import org.bukkit.entity.Player;
 public class CommandBomb implements CommandExecutor
 {
 
-    Main plugin;
+    Main main;
     public CommandBomb(Main plugin)
     {
-        this.plugin = plugin;
+        this.main = plugin;
     }
     Player player;
     @Override
@@ -26,7 +27,7 @@ public class CommandBomb implements CommandExecutor
     {
         if(args.length==0)
         {
-            sender.sendMessage(plugin.getBombBlocks().keySet().toString());
+            sender.sendMessage(main.getBombBlocks().keySet().toString());
             return true;
         }
         if(args.length>=1 &&sender instanceof Player)
@@ -43,7 +44,11 @@ public class CommandBomb implements CommandExecutor
             }
             else if(args[0].equals("spawn"))
             {
-                player.getWorld().spawnEntity(player.getLocation(), EntityType.valueOf(args[1]));
+                player.getWorld().spawnEntity(player.getLocation(), EntityType.valueOf(args[1].toUpperCase()));
+            }
+            else if(args[0].equalsIgnoreCase("play"))
+            {
+                main.playSound(player.getLocation(), Sound.valueOf(args[1].toUpperCase()));
             }
             else
             {

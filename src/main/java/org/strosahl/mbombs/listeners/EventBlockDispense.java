@@ -9,7 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Dispenser;
+import org.bukkit.block.data.type.Dispenser;
 
 public class EventBlockDispense implements Listener
 {

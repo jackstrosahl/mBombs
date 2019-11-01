@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.tags.ItemTagType;
+import org.bukkit.persistence.PersistentDataType;
 
 public enum Bombs
 {
@@ -36,7 +37,7 @@ public enum Bombs
             default:
                 is = new ItemStack(Material.TNT);
                 ItemMeta im = is.getItemMeta();
-                im.getCustomTagContainer().setCustomTag(Main.NAMESPACE, ItemTagType.INTEGER,id);
+                im.getPersistentDataContainer().set(Main.NAMESPACE, PersistentDataType.INTEGER, id);
                 im.setDisplayName(name +" Bomb");
                 is.setItemMeta(im);
                 break;
@@ -44,7 +45,7 @@ public enum Bombs
 
         missile = new ItemStack(Material.FIREWORK_ROCKET);
         ItemMeta missileMeta = missile.getItemMeta();
-        missileMeta.getCustomTagContainer().setCustomTag(Main.NAMESPACE,ItemTagType.INTEGER,id);
+        missileMeta.getPersistentDataContainer().set(Main.NAMESPACE, PersistentDataType.INTEGER, id);
         missileMeta.setDisplayName(name+" Missile");
         missile.setItemMeta(missileMeta);
     }

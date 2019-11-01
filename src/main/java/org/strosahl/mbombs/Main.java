@@ -4,6 +4,8 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.annotation.plugin.ApiVersion;
 import org.bukkit.plugin.java.annotation.plugin.Plugin;
 import org.bukkit.plugin.java.annotation.plugin.author.Author;
@@ -15,9 +17,8 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
-import org.bukkit.inventory.meta.tags.ItemTagType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.strosahl.mbombs.commands.TabCompleterBomb;
 import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.data.MissileData;
 import org.strosahl.mbombs.listeners.*;
@@ -28,7 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
-@Plugin(name="MBombs",version="1.0")
+@Plugin(name="MBombs",version="1.1")
 @ApiVersion(ApiVersion.Target.v1_13)
 @Author("strojac")
 public class Main extends JavaPlugin
@@ -55,7 +56,7 @@ public class Main extends JavaPlugin
         targeter = new ItemStack(Material.CLOCK);
         ItemMeta targeterMeta = targeter.getItemMeta();
         targeterMeta.setDisplayName(ChatColor.RED+"Targeter");
-        targeterMeta.getCustomTagContainer().setCustomTag(NAMESPACE,ItemTagType.INTEGER,-2);
+        targeterMeta.getPersistentDataContainer().set(NAMESPACE, PersistentDataType.INTEGER,-2);
         targeter.setItemMeta(targeterMeta);
     }
 
@@ -67,6 +68,7 @@ public class Main extends JavaPlugin
         makeRecipes();
 
         getCommand("bomb").setExecutor(new CommandBomb(this));
+        getCommand("bomb").setTabCompleter(new TabCompleterBomb(this));
 
         getServer().getPluginManager().registerEvents(new EventBlockPlace(this),this);
         getServer().getPluginManager().registerEvents(new EventBlockDispense(this), this);
@@ -84,6 +86,7 @@ public class Main extends JavaPlugin
         getServer().getPluginManager().registerEvents(new EventPlayerKick(this), this);
 
         getServer().getPluginManager().registerEvents(new EventProjectileHit(this),this);
+        getServer().getPluginManager().registerEvents(new EventProjectileLaunch(this), this);
 
         getLogger().info("Enabled");
     }
@@ -196,10 +199,8 @@ public class Main extends JavaPlugin
     {
         try
         {
-            CustomItemTagContainer container = is.getItemMeta().getCustomTagContainer();
-            if (!container.hasCustomTag(Main.NAMESPACE, ItemTagType.INTEGER))
-                return -1;
-            return container.getCustomTag(NAMESPACE, ItemTagType.INTEGER);
+            PersistentDataContainer container = is.getItemMeta().getPersistentDataContainer();
+            return container.getOrDefault(NAMESPACE, PersistentDataType.INTEGER, -1);
         }
         catch(NullPointerException e)
         {
@@ -277,7 +278,6 @@ public class Main extends JavaPlugin
         Bombs bomb = Bombs.getBomb(data.getId());
         tnt.setIsIncendiary(bomb.isIncendiary());
         tnt.setYield(bomb.getYield());
-        getLogger().info(bomb.getYield()+"");
         tnt.setFuseTicks(bomb.getFuse());
 
         switch(bomb)
@@ -339,7 +339,7 @@ public class Main extends JavaPlugin
         Vector origin = loc.toVector();
         origin.setY(0);
         double radius = origin.distance(target)/2;
-        Vector path = target.clone().subtract(origin).normalize().multiply(.3);
+        Vector path = target.clone().subtract(origin).normalize().multiply(1);
         path.setY(0);
 
         double magnitude = path.distance(new Vector(0,0,0))*2;
@@ -354,14 +354,12 @@ public class Main extends JavaPlugin
         if(diffY>0)
         {
             delay = (long)(diffY / magnitude);
-            getLogger().info(delay+"");
         }
 
-        getLogger().info("Target: "+target+" Origin: "+origin);
-        getLogger().info(path+"");
         data.setTaskId(Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
         {
             Vector cur = out.getLocation().toVector();
+            System.out.println("Missile Location: "+cur);
             cur.setY(0);
             double dist = cur.distance(origin);
             double percent = (radius-dist)/radius;
@@ -387,8 +385,6 @@ public class Main extends JavaPlugin
                 }
             }
             out.setVelocity(path);
-
-            getLogger().info("dist: "+dist+" radius: "+radius+" = "+percent);
         },delay,3L));
         return out;
     }

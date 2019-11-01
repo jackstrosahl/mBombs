@@ -28,7 +28,6 @@ public class EventProjectileLaunch implements Listener
 
         if(main.getMissileEntities().containsKey(uuid))
         {
-            main.getLogger().info("In");
             MissileData data = main.getMissileEntities().get(uuid);
             Location loc = projectile.getLocation();
             Location target = data.getTarget();

@@ -39,7 +39,6 @@ public class EventEntityExplode implements Listener
             Bombs bomb = Bombs.getBomb(id);
             Location origin = e.getEntity().getLocation().getBlock().getLocation();
             double yield = bomb.getYield();
-            //main.getLogger().info(yield+"");
             switch(bomb)
             {
                 case FIRE_BOMB:
@@ -149,6 +148,7 @@ public class EventEntityExplode implements Listener
             }
             if(e.isCancelled()) e.blockList().clear();
         }
+        System.out.println(((TNTPrimed)e.getEntity()).getSource());
     }
 
     private void createExplosion(Location loc, int fuse,float yield, Vector velocity, int id)

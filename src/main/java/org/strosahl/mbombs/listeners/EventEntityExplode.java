@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.entity.*;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.util.Vector;
 import org.strosahl.mbombs.data.BombData;
@@ -29,7 +30,7 @@ public class EventEntityExplode implements Listener
     }
 
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onEvent(EntityExplodeEvent e)
     {
         if(!e.isCancelled()&&main.getBombEntities().containsKey(e.getEntity().getUniqueId()))
@@ -162,7 +163,7 @@ public class EventEntityExplode implements Listener
 
     private void createExplosion(Location loc, float yield,int id)
     {
-        createExplosion(loc,0,yield,new Vector(0,0,0),id);
+        createExplosion(loc,1,yield,new Vector(0,0,0),id);
     }
 
     private double randomDouble(double min,double max)

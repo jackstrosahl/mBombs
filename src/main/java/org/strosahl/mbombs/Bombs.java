@@ -4,8 +4,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.tags.ItemTagType;
-import org.bukkit.persistence.PersistentDataType;
+
+import static org.strosahl.mbombs.Main.setVal;
 
 public enum Bombs
 {
@@ -37,15 +37,15 @@ public enum Bombs
             default:
                 is = new ItemStack(Material.TNT);
                 ItemMeta im = is.getItemMeta();
-                im.getPersistentDataContainer().set(Main.NAMESPACE, PersistentDataType.INTEGER, id);
+                setVal(im, id);
                 im.setDisplayName(name +" Bomb");
                 is.setItemMeta(im);
                 break;
         }
 
-        missile = new ItemStack(Material.FIREWORK_ROCKET);
+        missile = new ItemStack(Material.FIREWORK);
         ItemMeta missileMeta = missile.getItemMeta();
-        missileMeta.getPersistentDataContainer().set(Main.NAMESPACE, PersistentDataType.INTEGER, id);
+        setVal(missileMeta, id);
         missileMeta.setDisplayName(name+" Missile");
         missile.setItemMeta(missileMeta);
     }

@@ -30,7 +30,7 @@ public class CommandBomb implements CommandExecutor
             sender.sendMessage(main.getBombBlocks().keySet().toString());
             return true;
         }
-        if(args.length>=1 &&sender instanceof Player)
+        if(sender instanceof Player)
         {
             Player player = (Player) sender;
             if(args[0].equals("give"))

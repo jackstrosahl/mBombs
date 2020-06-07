@@ -36,7 +36,7 @@ public class EventProjectileHit implements Listener
 
             for(Chunk c: data.getForced())
             {
-                c.setForceLoaded(false);
+                c.unload();
             }
 
             TNTPrimed tnt =main.spawnBomb(entity.getLocation(),new BombData(data.getId(),new Vector(0,1,0)));

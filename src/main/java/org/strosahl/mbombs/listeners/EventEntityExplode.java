@@ -7,6 +7,7 @@ import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
 import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.Bombs;
@@ -98,9 +99,9 @@ public class EventEntityExplode implements Listener
                     {
                         Block b = iterator.next();
                         PistonMoveReaction reaction = b.getPistonMoveReaction();
-                        if(reaction.equals(PistonMoveReaction.MOVE)||reaction.equals(reaction.equals(PistonMoveReaction.PUSH_ONLY)))
+                        if(reaction.equals(PistonMoveReaction.MOVE)||reaction.equals((PistonMoveReaction.PUSH_ONLY)))
                         {
-                            FallingBlock entity = origin.getWorld().spawnFallingBlock(b.getLocation(),b.getBlockData());
+                            FallingBlock entity = origin.getWorld().spawnFallingBlock(b.getLocation(),b.getState().getData());
                             entity.setGravity(false);
                             entity.setVelocity(data.getDirection());
                             entity.setDropItem(false);
@@ -117,7 +118,8 @@ public class EventEntityExplode implements Listener
                             Location loc = floating.getLocation();
                             if (loc.getBlock().getType().equals(Material.AIR))
                             {
-                                loc.getBlock().setBlockData(floating.getBlockData());
+                                loc.getBlock().setType(floating.getMaterial());
+                                loc.getBlock().setData(floating.getBlockData());
                             }
                             floating.remove();
                         }
@@ -149,7 +151,6 @@ public class EventEntityExplode implements Listener
             }
             if(e.isCancelled()) e.blockList().clear();
         }
-        System.out.println(((TNTPrimed)e.getEntity()).getSource());
     }
 
     private void createExplosion(Location loc, int fuse,float yield, Vector velocity, int id)

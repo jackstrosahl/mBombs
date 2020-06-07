@@ -14,7 +14,7 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.3.2</version>
                 <configuration>
-                    <outputDirectory>C:\Users\Stros\Documents\Test Servers\1.14\plugins</outputDirectory>
+                    <outputDirectory>C:\Users\Stros\Documents\Test Servers\1.12.2 Again\plugins</outputDirectory>
                 </configuration>
             </plugin>
         </plugins>
@@ -59,7 +59,7 @@
                 spigot-api
             </artifactId>
             <version>
-                1.14.4-R0.1-SNAPSHOT
+                1.12.2-R0.1-SNAPSHOT
             </version>
             <scope>
                 provided

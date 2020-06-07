@@ -1,23 +1,25 @@
 package org.strosahl.mbombs;
 
+import org.apache.commons.lang.math.NumberUtils;
+import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.entity.*;
-import org.bukkit.inventory.*;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.annotation.plugin.ApiVersion;
 import org.bukkit.plugin.java.annotation.plugin.Plugin;
 import org.bukkit.plugin.java.annotation.plugin.author.Author;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.util.Vector;
 import org.strosahl.mbombs.commands.CommandBomb;
-import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.strosahl.mbombs.commands.TabCompleterBomb;
 import org.strosahl.mbombs.data.BombData;
 import org.strosahl.mbombs.data.MissileData;
@@ -25,12 +27,10 @@ import org.strosahl.mbombs.listeners.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.UUID;
+import java.util.*;
 
 @Plugin(name="MBombs",version="1.1")
-@ApiVersion(ApiVersion.Target.v1_13)
+@ApiVersion(ApiVersion.Target.DEFAULT)
 @Author("strojac")
 public class Main extends JavaPlugin
 {
@@ -46,17 +46,17 @@ public class Main extends JavaPlugin
     HashSet<UUID> allowFlying;
 
     public static NamespacedKey getNamespace(String s) {return NamespacedKey.minecraft("mbombs"+s);}
-    public static final NamespacedKey NAMESPACE = NamespacedKey.minecraft("mbombs");
+    public static final String NAMESPACE = NamespacedKey.minecraft("mbombs").toString();
 
     public static ItemStack targeter;
     public static String prefix=ChatColor.AQUA+"[MBombs]: "+ChatColor.DARK_GREEN;
 
     static
     {
-        targeter = new ItemStack(Material.CLOCK);
+        targeter = new ItemStack(Material.WATCH);
         ItemMeta targeterMeta = targeter.getItemMeta();
         targeterMeta.setDisplayName(ChatColor.RED+"Targeter");
-        targeterMeta.getPersistentDataContainer().set(NAMESPACE, PersistentDataType.INTEGER,-2);
+        setVal(targeterMeta, -2);
         targeter.setItemMeta(targeterMeta);
     }
 
@@ -101,7 +101,7 @@ public class Main extends JavaPlugin
         fireRecipe.setIngredient('T',Material.TNT);
         fireRecipe.setIngredient('F',Material.FLINT_AND_STEEL);
 
-        Bukkit.addRecipe(fireRecipe);
+        addRecipe(fireRecipe);
 
         ShapedRecipe nukeRecipe = new ShapedRecipe(getNamespace("1"), Bombs.NUKE.getItemStack());
         nukeRecipe.shape("TTT",
@@ -111,7 +111,7 @@ public class Main extends JavaPlugin
         nukeRecipe.setIngredient('T',Material.TNT);
         nukeRecipe.setIngredient('N',Material.NETHER_STAR);
 
-        Bukkit.addRecipe(nukeRecipe);
+        addRecipe(nukeRecipe);
 
         ShapedRecipe tunnelerRecipe = new ShapedRecipe(getNamespace("2"), Bombs.TUNNELER.getItemStack());
         tunnelerRecipe.shape("OTO",
@@ -121,31 +121,31 @@ public class Main extends JavaPlugin
         tunnelerRecipe.setIngredient('T',Material.TNT);
         tunnelerRecipe.setIngredient('O',Material.OBSIDIAN);
 
-        Bukkit.addRecipe(tunnelerRecipe);
+        addRecipe(tunnelerRecipe);
 
         ShapelessRecipe targeterRecipe = new ShapelessRecipe(getNamespace("3"),targeter);
 
         targeterRecipe.addIngredient(Material.COMPASS);
         targeterRecipe.addIngredient(8,Material.DIAMOND);
 
-        Bukkit.addRecipe(targeterRecipe);
+        addRecipe(targeterRecipe);
 
         ShapelessRecipe floaterRecipe = new ShapelessRecipe(getNamespace("4"),Bombs.FLOATER.getItemStack());
         floaterRecipe.addIngredient(8, Material.FEATHER);
         floaterRecipe.addIngredient(Material.TNT);
 
-        Bukkit.addRecipe(floaterRecipe);
+        addRecipe(floaterRecipe);
 
         ShapelessRecipe antiGravityRecipe = new ShapelessRecipe(getNamespace("5"),Bombs.ANTIGRAVITY.getItemStack());
         antiGravityRecipe.addIngredient(Material.TNT);
         antiGravityRecipe.addIngredient(8, Material.SOUL_SAND);
 
-        Bukkit.addRecipe(antiGravityRecipe);
+        addRecipe(antiGravityRecipe);
 
         ShapelessRecipe clusterRecipe = new ShapelessRecipe(getNamespace("6"),Bombs.CLUSTER_BOMB.getItemStack());
         clusterRecipe.addIngredient(9, Material.TNT);
 
-        Bukkit.addRecipe(clusterRecipe);
+        addRecipe(clusterRecipe);
 
         int i = 7;
         for(Bombs bomb: Bombs.values())
@@ -155,9 +155,9 @@ public class Main extends JavaPlugin
                 case RELOCATOR:
                 {
                     ShapelessRecipe recipe = new ShapelessRecipe(getNamespace(i + ""), bomb.getMissile());
-                    recipe.addIngredient(Material.FIREWORK_ROCKET);
-                    recipe.addIngredient(new RecipeChoice.MaterialChoice(Material.BIRCH_BOAT, Material.ACACIA_BOAT, Material.DARK_OAK_BOAT, Material.JUNGLE_BOAT, Material.OAK_BOAT, Material.SPRUCE_BOAT));
-                    Bukkit.addRecipe(recipe);
+                    recipe.addIngredient(Material.FIREWORK);
+                    recipe.addIngredient(Material.BOAT);
+                    addRecipe(recipe);
                 }
                 break;
                 default:
@@ -167,14 +167,25 @@ public class Main extends JavaPlugin
                             "FBF",
                             "FFF");
 
-                    recipe.setIngredient('F',Material.FIREWORK_ROCKET);
-                    recipe.setIngredient('B', new RecipeChoice.ExactChoice(bomb.getItemStack()));
-
-                    Bukkit.addRecipe(recipe);
+                    recipe.setIngredient('F',Material.FIREWORK);
+                    recipe.setIngredient('B', bomb.getItemStack().getData());
+                    addRecipe(recipe);
                 }
                 break;
             }
             i++;
+        }
+    }
+
+    public void addRecipe(Recipe recipe)
+    {
+        try
+        {
+            Bukkit.addRecipe(recipe);
+        }
+        catch(Exception ignored)
+        {
+
         }
     }
 
@@ -199,8 +210,7 @@ public class Main extends JavaPlugin
     {
         try
         {
-            PersistentDataContainer container = is.getItemMeta().getPersistentDataContainer();
-            return container.getOrDefault(NAMESPACE, PersistentDataType.INTEGER, -1);
+            return getVal(is.getItemMeta());
         }
         catch(NullPointerException e)
         {
@@ -359,7 +369,6 @@ public class Main extends JavaPlugin
         data.setTaskId(Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () ->
         {
             Vector cur = out.getLocation().toVector();
-            System.out.println("Missile Location: "+cur);
             cur.setY(0);
             double dist = cur.distance(origin);
             double percent = (radius-dist)/radius;
@@ -379,7 +388,6 @@ public class Main extends JavaPlugin
                     if(!data.getForced().contains(chunk))
                     {
                         chunk.load();
-                        chunk.setForceLoaded(true);
                         data.getForced().add(chunk);
                     }
                 }
@@ -391,7 +399,7 @@ public class Main extends JavaPlugin
 
     public Projectile spawnMissile(Location loc, MissileData data, ProjectileSource source)
     {
-        return spawnMissile(loc,data,EntityType.TRIDENT,source);
+        return spawnMissile(loc,data,EntityType.FIREBALL,source);
     }
 
     //Saving/Loading bomb locations/ids
@@ -465,5 +473,24 @@ public class Main extends JavaPlugin
     public FileConfiguration getBombsFileConfig()
     {
         return bombsFileConfig;
+    }
+
+    public static ItemMeta setVal(ItemMeta meta, int val)
+    {
+        meta.setLore(Arrays.asList(NAMESPACE, val+""));
+        return meta;
+    }
+
+    public static int getVal(ItemMeta meta)
+    {
+        if(meta.hasLore())
+        {
+            List<String> lore = meta.getLore();
+            if(lore.get(0).equals(NAMESPACE))
+            {
+                return NumberUtils.toInt(lore.get(1),-1);
+            }
+        }
+        return -1;
     }
 }

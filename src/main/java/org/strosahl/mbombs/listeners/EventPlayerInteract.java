@@ -66,7 +66,7 @@ public class EventPlayerInteract implements Listener
                         lastDoneMap.put(uuid, System.currentTimeMillis());
                     }
                 }
-                else if(item.getType().equals(Material.FIREWORK_ROCKET))
+                else if(item.getType().equals(Material.FIREWORK))
                 {
                     if(action.equals((Action.RIGHT_CLICK_BLOCK)))
                     {
